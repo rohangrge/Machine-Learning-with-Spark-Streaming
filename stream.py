@@ -15,13 +15,13 @@ from tqdm.auto import tqdm
 parser = argparse.ArgumentParser(
     description='Streams a file to a Spark Streaming Context')
 parser.add_argument('--file', '-f', help='File to stream', required=False,
-                    type=str, default="cifar")    # path to file for streaming
+                    type=str, default="spam")    # path to file for streaming
 parser.add_argument('--batch-size', '-b', help='Batch size',
                     required=False, type=int, default=100)  # default batch_size is 100
 parser.add_argument('--endless', '-e', help='Enable endless stream',
                     required=False, type=bool, default=False)  # looping disabled by default
 
-TCP_IP = "localhost"
+TCP_IP = 'localhost'
 TCP_PORT = 6100
 
 
@@ -30,7 +30,7 @@ def connectTCP():   # connect to the TCP server -- there is no need to modify th
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s.bind((TCP_IP, TCP_PORT))
     s.listen(1)
-    print(f"Waiting for connection on port {TCP_PORT}...")
+    print(f"Waiting for connection on port {TCP_PORT} {TCP_IP}...")
     connection, address = s.accept()
     print(f"Connected to {address}")
     return connection, address
@@ -189,7 +189,7 @@ def streamCSVFile(tcp_connection, input_file):    # stream a CSV file to Spark
             for feature_index in range(len(send_data[0])):
                 # add the feature to the record
                 payload[mini_batch_index][f'feature{feature_index}'] = send_data[mini_batch_index][feature_index]
-        # print(payload)    # uncomment to see the payload being sent
+        print(payload)    # uncomment to see the payload being sent
         # encode the payload and add a newline character (do not forget the newline in your dataset)
         send_batch = (json.dumps(payload) + '\n').encode()
         try:
