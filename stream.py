@@ -21,7 +21,7 @@ parser.add_argument('--batch-size', '-b', help='Batch size',
 parser.add_argument('--endless', '-e', help='Enable endless stream',
                     required=False, type=bool, default=False)  # looping disabled by default
 
-TCP_IP = 'localhost'
+TCP_IP = "localhost"
 TCP_PORT = 6100
 
 
@@ -30,7 +30,7 @@ def connectTCP():   # connect to the TCP server -- there is no need to modify th
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s.bind((TCP_IP, TCP_PORT))
     s.listen(1)
-    print(f"Waiting for connection on port {TCP_PORT} {TCP_IP}...")
+    print(f"Waiting for connection on port {TCP_PORT}...")
     connection, address = s.accept()
     print(f"Connected to {address}")
     return connection, address
@@ -49,7 +49,7 @@ def sendCIFARBatchFileToSpark(tcp_connection, input_batch_file):
     # setting feature size to form the payload later
     feature_size = len(data[0])
     # iterate over batches of size batch_size
-    for image_index in tqdm(range(0, len(data)-batch_size+1, batch_size)):
+    for image_index in tqdm(range(0, len(data)-batch_size+2, batch_size)):
         # load batch of images
         image_data_batch = data[image_index:image_index+batch_size]
         image_label = labels[image_index:image_index +
@@ -69,7 +69,7 @@ def sendCIFARBatchFileToSpark(tcp_connection, input_batch_file):
             print("Either batch size is too big for the dataset or the connection was closed")
         except Exception as error_message:
             print(f"Exception thrown but was handled: {error_message}")
-        time.sleep(1)
+        time.sleep(5)
 
 
 def streamCIFARDataset(tcp_connection, dataset_type='cifar'):
@@ -84,7 +84,7 @@ def streamCIFARDataset(tcp_connection, dataset_type='cifar'):
     ]
     for batch in CIFAR_BATCHES:
         sendCIFARBatchFileToSpark(tcp_connection, batch)
-        time.sleep(1)
+        time.sleep(5)
 
 
 def sendPokemonBatchFileToSpark(tcp_connection, input_batch_file):
@@ -96,7 +96,7 @@ def sendPokemonBatchFileToSpark(tcp_connection, input_batch_file):
     data = batch_data['img']
     labels = batch_data['label']
     # iterate over batches of size batch_size
-    for image_index in tqdm(range(0, len(data)-batch_size+1, batch_size)):
+    for image_index in tqdm(range(0, len(data)-batch_size+2, batch_size)):
         # load batch of images
         image_data_batch = data[image_index:image_index+batch_size]
         image_label = labels[image_index:image_index +
@@ -116,7 +116,7 @@ def sendPokemonBatchFileToSpark(tcp_connection, input_batch_file):
             print("Either batch size is too big for the dataset or the connection was closed")
         except Exception as error_message:
             print(f"Exception thrown but was handled: {error_message}")
-        time.sleep(1)
+        time.sleep(5)
             
 
 def streamPokemonDataset(tcp_connection, dataset_type='pokemon'):
@@ -131,7 +131,7 @@ def streamPokemonDataset(tcp_connection, dataset_type='pokemon'):
     ]
     for batch in POKEMON_BATCHES:
         sendPokemonBatchFileToSpark(tcp_connection, batch)
-        time.sleep(1)
+        time.sleep(5)
 
 
 def streamDataset(tcp_connection, dataset_type):    # function to stream a dataset
@@ -144,7 +144,7 @@ def streamDataset(tcp_connection, dataset_type):    # function to stream a datas
     ]
     for dataset in DATASETS:
         streamCSVFile(tcp_connection, f'{dataset_type}/{dataset}.csv')
-        time.sleep(1)
+        time.sleep(5)
 
 
 def streamCSVFile(tcp_connection, input_file):    # stream a CSV file to Spark
@@ -179,7 +179,7 @@ def streamCSVFile(tcp_connection, input_file):    # stream a CSV file to Spark
     df = pd.read_csv(input_file)  # load the entire dataset
     values = df.values.tolist()  # obtain the values of the dataset
     # loop through batches of size batch_size lines
-    for i in tqdm(range(0, len(values)-batch_size+1, batch_size)):
+    for i in tqdm(range(0, len(values)-batch_size+2, batch_size)):
         send_data = values[i:i+batch_size]  # load batch of rows
         payload = dict()    # create a payload
         # iterate over the batch
@@ -189,7 +189,7 @@ def streamCSVFile(tcp_connection, input_file):    # stream a CSV file to Spark
             for feature_index in range(len(send_data[0])):
                 # add the feature to the record
                 payload[mini_batch_index][f'feature{feature_index}'] = send_data[mini_batch_index][feature_index]
-        print(payload)    # uncomment to see the payload being sent
+        # print(payload)    # uncomment to see the payload being sent
         # encode the payload and add a newline character (do not forget the newline in your dataset)
         send_batch = (json.dumps(payload) + '\n').encode()
         try:
@@ -198,7 +198,7 @@ def streamCSVFile(tcp_connection, input_file):    # stream a CSV file to Spark
             print("Either batch size is too big for the dataset or the connection was closed")
         except Exception as error_message:
             print(f"Exception thrown but was handled: {error_message}")
-        time.sleep(1)
+        time.sleep(5)
 
 
 def streamFile(tcp_connection, input_file):  # stream a newline delimited file to Spark
@@ -213,7 +213,7 @@ def streamFile(tcp_connection, input_file):  # stream a newline delimited file t
         data = file.readlines()  # open the file and read every line
         total_lines = len(data)
         # loop through batches of size batch_size lines
-        for i in tqdm(range(0, total_lines-batch_size+1, batch_size)):
+        for i in tqdm(range(0, total_lines-batch_size+2, batch_size)):
             send_data = data[i:i+batch_size]    # load batch of lines
             # encode the payload and add a newline character (do not forget the newline in your dataset)
             send_batch = (json.dumps(send_data) + '\n').encode()
@@ -223,7 +223,7 @@ def streamFile(tcp_connection, input_file):  # stream a newline delimited file t
                 print("Either batch size is too big for the dataset or the connection was closed")
             except Exception as error_message:
                 print(f"Exception thrown but was handled: {error_message}")
-            time.sleep(1)
+            time.sleep(5)
 
 
 if __name__ == '__main__':
