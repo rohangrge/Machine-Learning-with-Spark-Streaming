@@ -17,7 +17,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument('--file', '-f', help='File to stream', required=False,
                     type=str, default="spam")    # path to file for streaming
 parser.add_argument('--batch-size', '-b', help='Batch size',
-                    required=False, type=int, default=100)  # default batch_size is 100
+                    required=False, type=int, default=12)  # default batch_size is 100
 parser.add_argument('--endless', '-e', help='Enable endless stream',
                     required=False, type=bool, default=False)  # looping disabled by default
 
@@ -34,104 +34,6 @@ def connectTCP():   # connect to the TCP server -- there is no need to modify th
     connection, address = s.accept()
     print(f"Connected to {address}")
     return connection, address
-
-
-# separate function to stream CIFAR batches since the format is different
-def sendCIFARBatchFileToSpark(tcp_connection, input_batch_file):
-    # load the entire dataset
-    with open(f'cifar/{input_batch_file}', 'rb') as batch_file:
-        batch_data = pickle.load(batch_file, encoding='bytes')
-
-    # obtain image data and labels
-    data = batch_data[b'data']
-    data = list(map(np.ndarray.tolist, data))
-    labels = batch_data[b'labels']
-    # setting feature size to form the payload later
-    feature_size = len(data[0])
-    # iterate over batches of size batch_size
-    for image_index in tqdm(range(0, len(data)-batch_size+2, batch_size)):
-        # load batch of images
-        image_data_batch = data[image_index:image_index+batch_size]
-        image_label = labels[image_index:image_index +
-                             batch_size]        # load batch of labels
-        payload = dict()
-        for mini_batch_index in range(len(image_data_batch)):
-            payload[mini_batch_index] = dict()
-            for feature_index in range(feature_size):  # iterate over features
-                payload[mini_batch_index][f'feature{feature_index}'] = image_data_batch[mini_batch_index][feature_index]
-            payload[mini_batch_index]['label'] = image_label[mini_batch_index]
-        # print(payload)    # uncomment to see the payload being sent
-        # encode the payload and add a newline character (do not forget the newline in your dataset)
-        send_batch = (json.dumps(payload) + '\n').encode()
-        try:
-            tcp_connection.send(send_batch)  # send the payload to Spark
-        except BrokenPipeError:
-            print("Either batch size is too big for the dataset or the connection was closed")
-        except Exception as error_message:
-            print(f"Exception thrown but was handled: {error_message}")
-        time.sleep(5)
-
-
-def streamCIFARDataset(tcp_connection, dataset_type='cifar'):
-    print("Starting to stream CIFAR data")
-    CIFAR_BATCHES = [
-        'data_batch_1',
-        # 'data_batch_2',   # uncomment to stream the second training dataset
-        # 'data_batch_3',   # uncomment to stream the third training dataset
-        # 'data_batch_4',   # uncomment to stream the fourth training dataset
-        # 'data_batch_5',    # uncomment to stream the fifth training dataset
-        # 'test_batch'      # uncomment to stream the test dataset
-    ]
-    for batch in CIFAR_BATCHES:
-        sendCIFARBatchFileToSpark(tcp_connection, batch)
-        time.sleep(5)
-
-
-def sendPokemonBatchFileToSpark(tcp_connection, input_batch_file):
-    # load the entire dataset
-    with open(f'pokemon/{input_batch_file}.pickle', 'rb') as batch_file:
-        batch_data = pickle.load(batch_file)
-    
-    # obtain image data and labels
-    data = batch_data['img']
-    labels = batch_data['label']
-    # iterate over batches of size batch_size
-    for image_index in tqdm(range(0, len(data)-batch_size+2, batch_size)):
-        # load batch of images
-        image_data_batch = data[image_index:image_index+batch_size]
-        image_label = labels[image_index:image_index +
-                             batch_size]        # load batch of labels
-        payload = dict()    
-        for mini_batch_index in range(len(image_data_batch)):   
-            payload[mini_batch_index] = dict()  
-            payload[mini_batch_index]["img"] = image_data_batch[mini_batch_index]
-            # if you want to flatten out the matrix, use payload[mini_batch_index]["img"] = np.asarray(image_data_batch[mini_batch_index]).flatten().tolist()
-            payload[mini_batch_index]['label'] = image_label[mini_batch_index]
-        # print(payload)    # uncomment to see the payload being sent
-        # encode the payload and add a newline character (do not forget the newline in your dataset)
-        send_batch = (json.dumps(payload) + '\n').encode()
-        try:
-            tcp_connection.send(send_batch)  # send the payload to Spark
-        except BrokenPipeError:
-            print("Either batch size is too big for the dataset or the connection was closed")
-        except Exception as error_message:
-            print(f"Exception thrown but was handled: {error_message}")
-        time.sleep(5)
-            
-
-def streamPokemonDataset(tcp_connection, dataset_type='pokemon'):
-    print("Starting to stream Pokemon data")
-    POKEMON_BATCHES = [
-        'train_batch_1',
-        # 'train_batch_2',   # uncomment to stream the second training dataset
-        # 'train_batch_3',   # uncomment to stream the third training dataset
-        # 'train_batch_4',   # uncomment to stream the fourth training dataset
-        # 'train_batch_5',    # uncomment to stream the fifth training dataset
-        # 'test_batch'      # uncomment to stream the test dataset
-    ]
-    for batch in POKEMON_BATCHES:
-        sendPokemonBatchFileToSpark(tcp_connection, batch)
-        time.sleep(5)
 
 
 def streamDataset(tcp_connection, dataset_type):    # function to stream a dataset
@@ -237,11 +139,7 @@ if __name__ == '__main__':
     tcp_connection, _ = connectTCP()
 
     # to stream a custom dataset, uncomment the elif block and create your own dataset streamer function (or modify the existing one)
-    if input_file == "cifar":
-        _function = streamCIFARDataset
-    elif input_file == "pokemon":
-        _function = streamPokemonDataset
-    elif input_file in ["crime", "sentiment", "spam"]:
+    if input_file == "spam":
         _function = streamDataset
     # elif input_file == "my dataset":
     #     _function = streamMyDataset
