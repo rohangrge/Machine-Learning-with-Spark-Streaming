@@ -14,7 +14,7 @@ def readMyStream(rdd):
     df = df.select(cols)
     df.show()
 
-cols = [ '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11']
+cols = [ str(x) for x in range(0,12)]
 sc = SparkContext("local[2]", "spam")
 spark = SparkSession(sc)
 ssc = StreamingContext(sc, 1)
