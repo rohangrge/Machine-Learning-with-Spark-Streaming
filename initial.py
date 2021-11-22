@@ -1,7 +1,7 @@
 from pyspark import SparkContext
 from pyspark.streaming import StreamingContext
 from pyspark.sql import SQLContext
-import pyspark.sql.functions as f
+import pyspark.sql.functions as F
 from pyspark.sql import SparkSession
 from pyspark.sql.types import StructType, StringType
 
@@ -11,19 +11,40 @@ def readMyStream(rdd):
     df = spark.read.json(rdd)
     print('Started the Process')
     print('Selection of Columns')
-    df = df.select(cols)
-    df.show()
+    df_final = spark.createDataFrame(data = [] , schema = schema)
+    #df = df.select("feature0", "feature1", "feature2")
+    #print(df.columns)
+    for i in df.columns:
+       #print(i)
+       df_temp = df.select("{}.feature0".format(i), "{}.feature1".format(i), "{}.feature2".format(i))
+       #df_temp.show()
+       df_final = df_final.union(df_temp)
+    
+    #Assuming that all the json columns are in a single column, hence making it an array column first.
+    # df = df.withColumn("array_col", F.array(df.columns))
+    # #Then explode and getItem
+    # df = df.withColumn("explod_col", F.explode("array_col"))
+    # df = df.select("*", F.explode("explod_col").alias("x", "y"))
+    # df_final = df.withColumn("seq", df.y.getItem("seq")).withColumn("state", df.y.getItem("state")).withColumn("CMD", df.y.getItem("CMD"))
+    # df_final.select("seq","state","CMD").show()
+    df_final.show()
+     
+    #df.printSchema()
+    #print(df.columns)
 
-inner_cols = ["feature0", "feature1", "feature2"]
-cols = [ str(x) for x in range(0,12)]
+#inner_cols = ["feature0", "feature1", "feature2"]
+
+schema = StructType().add("feature0", StringType()) \
+.add("feature1", StringType()).add("feature2", StringType())
+
+# cols = [[str(x)[inner_cols[0]], str(x)[inner_cols[1]], str(x)[innercols[2]] ] for x in range(0,12)]
+# print(cols)
+
 sc = SparkContext("local[2]", "spam")
 spark = SparkSession(sc)
 ssc = StreamingContext(sc, 1)
 
 lines = ssc.socketTextStream("localhost", 6100)
-# .map(lambda x : check_json(x,cols)) \
-#       .filter(lambda x : x) \
-#             .foreachRDD(lambda x : convert_json2df(x,cols))
 
 lines.foreachRDD(lambda rdd : readMyStream(rdd))
 
