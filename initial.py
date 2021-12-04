@@ -6,9 +6,12 @@ from pyspark.sql import SparkSession
 from pyspark.sql.types import StructType, StringType
 
 
+
 def readMyStream(rdd):
   
   if not rdd.isEmpty(): 
+    global batch_no
+    batch_no += 1
     #convert the json object into a dataframe
     df = spark.read.json(rdd)
     df_final = spark.createDataFrame(data = [] , schema = schema)
@@ -20,6 +23,7 @@ def readMyStream(rdd):
        df_temp = df.select("{}.feature0".format(i), "{}.feature1".format(i), "{}.feature2".format(i))
        df_final = df_final.union(df_temp)
     
+    print(batch_no)
     df_final.show()
 
 
@@ -31,6 +35,7 @@ schema = StructType().add("feature0", StringType()) \
 sc = SparkContext("local[2]", "spam")
 spark = SparkSession(sc)
 ssc = StreamingContext(sc, 1)
+batch_no = 0
 
 #read streaming data from socket into a dstream
 lines = ssc.socketTextStream("localhost", 6100)
