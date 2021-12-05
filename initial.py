@@ -37,8 +37,6 @@ def readMyStream(rdd):
         hashingTF = HashingTF(inputCol="feature1",
                               outputCol="rawFeatures", numFeatures=1)
         featurizedData = hashingTF.transform(wordsData)
-        featurizedData = featurizedData.withColumn(
-            "feature1", (df_final.feature1).cast(VectorUDT()))
 
         idf = IDF(inputCol="rawFeatures", outputCol="features")
         idfModel = idf.fit(featurizedData)
