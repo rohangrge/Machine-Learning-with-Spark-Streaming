@@ -26,7 +26,6 @@ def readMyStream(rdd):
             df_final = df_final.union(df_temp)
             print(i)
         df_final.show()
-        df_final = df_final.withColumn("feature1", array(df_final["feature1"]))
         df_final = df_final.withColumn("feature1", array(
             lower_clean_str(df_final["feature1"])))
         tokenizer = RegexTokenizer(inputCol="feature1", outputCol="words")
