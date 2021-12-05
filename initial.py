@@ -6,6 +6,7 @@ from pyspark.sql import SparkSession
 from pyspark.sql.types import StructType, StringType
 from pyspark.ml.feature import HashingTF, IDF, RegexTokenizer
 from pyspark.sql.functions import array, lower, regexp_replace, trim, col
+from pyspark.ml.linalg import VectorUDT
 
 
 def readMyStream(rdd):
@@ -36,6 +37,9 @@ def readMyStream(rdd):
         hashingTF = HashingTF(inputCol="feature1",
                               outputCol="rawFeatures", numFeatures=1)
         featurizedData = hashingTF.transform(wordsData)
+        featurizedData = featurizedData.withColumn(
+            "feature1", (df_final.feature1).cast(VectorUDT()))
+
         idf = IDF(inputCol="feature1", outputCol="features")
         idfModel = idf.fit(featurizedData)
         rescaledData = idfModel.transform(featurizedData)
