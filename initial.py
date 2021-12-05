@@ -4,7 +4,7 @@ from pyspark.sql import SQLContext
 import pyspark.sql.functions as F
 from pyspark.sql import SparkSession
 from pyspark.sql.types import StructType, StringType
-from pyspark.ml.feature import HashingTF, IDF, regexTokenizer
+from pyspark.ml.feature import HashingTF, IDF, RegexTokenizer
 from pyspark.sql.functions import array
 
 
