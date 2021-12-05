@@ -27,7 +27,7 @@ def readMyStream(rdd):
             print(i)
         df_final.show()
         df_final = df_final.withColumn("feature1", array(df_final["feature1"]))
-        tokenizer = Tokenizer(inputCol=["feature1"], outputCol=["words"])
+        tokenizer = Tokenizer(inputCol="feature1", outputCol="words")
         wordsData = tokenizer.transform(df_final)
         hashingTF = HashingTF(inputCol="feature1",
                               outputCol="rawFeatures", numFeatures=20)
