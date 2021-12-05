@@ -32,9 +32,9 @@ def readMyStream(rdd):
         df_final.show()
         tokenizer = RegexTokenizer(inputCol="feature1", outputCol="words")
         wordsData = tokenizer.transform(df_final)
-        df_final = df_final.withColumn("feature1", array(df_final.feature1))
-        hashingTF = HashingTF(inputCol="feature1",
-                              outputCol="rawFeatures", numFeatures=20)
+        df_final = df_final.withColumn("feature1a", array(df_final.feature1))
+        hashingTF = HashingTF(inputCol="feature1a",
+                              outputCol="rawFeatures", numFeatures=1)
         featurizedData = hashingTF.transform(wordsData)
         idf = IDF(inputCol="feature1", outputCol="features")
         idfModel = idf.fit(featurizedData)
