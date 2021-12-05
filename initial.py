@@ -40,7 +40,7 @@ def readMyStream(rdd):
         featurizedData = featurizedData.withColumn(
             "feature1", (df_final.feature1).cast(VectorUDT()))
 
-        idf = IDF(inputCol="feature1", outputCol="features")
+        idf = IDF(inputCol="rawFeatures", outputCol="features")
         idfModel = idf.fit(featurizedData)
         rescaledData = idfModel.transform(featurizedData)
         for features_label in rescaledData.select("features", "feature0").take(3):
