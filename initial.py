@@ -5,7 +5,7 @@ import pyspark.sql.functions as F
 from pyspark.sql import SparkSession
 from pyspark.sql.types import StructType, StringType
 from pyspark.ml.feature import HashingTF, IDF, RegexTokenizer
-from pyspark.sql.functions import array
+from pyspark.sql.functions import array, lower, regexp_replace, trim, col
 
 
 def readMyStream(rdd):
@@ -27,7 +27,7 @@ def readMyStream(rdd):
             print(i)
         df_final.show()
         df_final = df_final.withColumn(
-            "feature1a", lower_clean_str(F.col("feature1")))
+            "feature1a", removePunctuation(col("feature1")))
         df_final = df_final.withColumn("feature1", array(df_final.feature1a))
         tokenizer = RegexTokenizer(inputCol="feature1", outputCol="words")
         wordsData = tokenizer.transform(df_final)
@@ -49,6 +49,21 @@ def lower_clean_str(x):
     for ch in punc:
         lowercased_str = lowercased_str.replace(ch, '')
     return lowercased_str
+
+
+def removePunctuation(column):
+    """Removes punctuation, changes to lower case, and strips leading and trailing spaces.
+
+    Note:
+        Only spaces, letters, and numbers should be retained.  
+
+    Args:
+        column (Column): A Column containing a sentence.
+
+    Returns:
+        Column: A Column named 'sentence' with clean-up operations applied.
+    """
+    return lower(trim(regexp_replace(column, '\\p{Punct}', ''))).alias('sentence')
 
 
 # schema for the final dataframe
