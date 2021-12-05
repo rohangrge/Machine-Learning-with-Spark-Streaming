@@ -27,8 +27,8 @@ def readMyStream(rdd):
             print(i)
         df_final.show()
         df_final = df_final.withColumn(
-            "feature1a", removePunctuation(col("feature1")))
-        df_final = df_final.withColumn("feature1", array(df_final.feature1a))
+            "feature1", removePunctuation(col("feature1")))
+        # df_final = df_final.withColumn("feature1", array(df_final.feature1a))
         df_final.show()
         tokenizer = RegexTokenizer(inputCol="feature1", outputCol="words")
         wordsData = tokenizer.transform(df_final)
