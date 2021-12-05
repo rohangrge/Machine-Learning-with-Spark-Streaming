@@ -4,7 +4,7 @@ from pyspark.sql import SQLContext
 import pyspark.sql.functions as F
 from pyspark.sql import SparkSession
 from pyspark.sql.types import StructType, StringType
-from pyspark.ml.feature import HashingTF, IDF, Tokenizer
+from pyspark.ml.feature import HashingTF, IDF, regexTokenizer
 from pyspark.sql.functions import array
 
 
@@ -27,7 +27,7 @@ def readMyStream(rdd):
             print(i)
         df_final.show()
         df_final = df_final.withColumn("feature1", array(df_final["feature1"]))
-        tokenizer = Tokenizer(inputCol="feature1", outputCol="words")
+        tokenizer = regexTokenizer(inputCol="feature1", outputCol="words")
         wordsData = tokenizer.transform(df_final)
         hashingTF = HashingTF(inputCol="feature1",
                               outputCol="rawFeatures", numFeatures=20)
