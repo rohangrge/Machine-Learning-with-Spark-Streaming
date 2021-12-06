@@ -24,7 +24,7 @@ nltk.download('stopwords')
 udf_spam_encode = F.udf(lambda x: spam_encoding(x), IntegerType())
 
 
-def readMyStream(rdd):
+def readMyStream(rdd, gnb):
 
     if not rdd.isEmpty():
         global batch_no
@@ -149,7 +149,7 @@ pipeline = Pipeline() \
         stopwords_cleaner,
         finisher
     ])
-gnb = GaussianNB()
+
 # read streaming data from socket into a dstream
 lines = ssc.socketTextStream("localhost", 6100)
 # process each RDD(resilient distributed dataset) to desirable format
