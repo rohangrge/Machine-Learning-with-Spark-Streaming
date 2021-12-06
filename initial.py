@@ -15,9 +15,12 @@ from sparknlp.base import Finisher, DocumentAssembler
 from pyspark.ml import Pipeline
 from sparknlp.annotator import (Tokenizer, Normalizer,
                                 LemmatizerModel, StopWordsCleaner)
+from sklearn.naive_bayes import GaussianNB
+
 from pyspark.ml.feature import StringIndexer
 nltk.download('stopwords')
-udf_spam_encode = F.udf(lambda x: spam_encoding(x) , IntegerType())
+udf_spam_encode = F.udf(lambda x: spam_encoding(x), IntegerType())
+
 
 def readMyStream(rdd):
 
@@ -36,11 +39,11 @@ def readMyStream(rdd):
                 i), "{}.feature1".format(i), "{}.feature2".format(i))
             df_final = df_final.union(df_temp)
             print(i)
-        
 
-        df_final = df_final.withColumn("feature2a", udf_spam_encode(col("feature2")))
+        df_final = df_final.withColumn(
+            "feature2a", udf_spam_encode(col("feature2")))
         df_final.show()
-        
+
         df_final = df_final.withColumn(
             "feature1", removePunctuation(col("feature1")))
 
@@ -56,8 +59,9 @@ def readMyStream(rdd):
         idf = IDF(inputCol="rawFeatures", outputCol="features")
         idfModel = idf.fit(featurizedData)
         rescaledData = idfModel.transform(featurizedData)
-
-        #rescaledData.show()
+        gnb.partial_fit(rescaledData.select("features"), "feature2a")
+        # gnb.predict(rescaledData.select("features"))
+        # rescaledData.show()
 
         # for features_label in rescaledData.select("features", "feature0").take(3):
         #     print(features_label)
@@ -79,11 +83,13 @@ def removePunctuation(column):
     """
     return lower(trim(regexp_replace(column, '\\p{Punct}', ''))).alias('sentence')
 
+
 def spam_encoding(spam_ham):
     if spam_ham == "spam":
         return 0
     else:
         return 1
+
 
 eng_stopwords = stopwords.words('english')
 
@@ -138,10 +144,11 @@ pipeline = Pipeline() \
         stopwords_cleaner,
         finisher
     ])
+gnb = GaussianNB()
 # read streaming data from socket into a dstream
 lines = ssc.socketTextStream("localhost", 6100)
 # process each RDD(resilient distributed dataset) to desirable format
 lines.foreachRDD(lambda rdd: readMyStream(rdd))
-
+gnb.save("gnb_model")
 ssc.start()
 ssc.awaitTermination()
