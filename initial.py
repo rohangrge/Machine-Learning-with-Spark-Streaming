@@ -37,8 +37,9 @@ def readMyStream(rdd):
             df_final = df_final.union(df_temp)
             print(i)
         df_final.show()
-        indexer = StringIndexer(inputCol="feature2", outputCol="feature2a")
-        indexer.fit(df_final).transform(df_final).show()
+        ohe = OneHotEncoderEstimator(
+            inputCols=["feature2"], outputCols=["feature2_ohe"])
+        ohe.fit(df_final).transform(df_final).show()
         df_final = df_final.withColumn(
             "feature1", removePunctuation(col("feature1")))
 
