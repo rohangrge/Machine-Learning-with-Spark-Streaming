@@ -16,6 +16,7 @@ from pyspark.ml import Pipeline
 from sparknlp.annotator import (Tokenizer, Normalizer,
                                 LemmatizerModel, StopWordsCleaner)
 from sklearn.naive_bayes import GaussianNB
+import pickle
 
 from pyspark.ml.feature import StringIndexer
 nltk.download('stopwords')
@@ -151,6 +152,8 @@ gnb = GaussianNB()
 lines = ssc.socketTextStream("localhost", 6100)
 # process each RDD(resilient distributed dataset) to desirable format
 lines.foreachRDD(lambda rdd: readMyStream(rdd))
+with open('my_dumped_classifier.pkl', 'wb') as fid:
+    cPickle.dump(gnb, fid)
 
 ssc.start()
 ssc.awaitTermination()
