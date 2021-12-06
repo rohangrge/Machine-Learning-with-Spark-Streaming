@@ -155,7 +155,7 @@ lines = ssc.socketTextStream("localhost", 6100)
 # process each RDD(resilient distributed dataset) to desirable format
 fil = open('my_dumped_classifier.pkl', 'rb')
 gnb = pickle.load(fil)
-lines.foreachRDD(lambda rdd: readMyStream(rdd))
+lines.foreachRDD(lambda rdd: readMyStream(rdd, gnb))
 with open('my_dumped_classifier.pkl', 'wb') as fid:
     pickle.dump(gnb, fid)
 
