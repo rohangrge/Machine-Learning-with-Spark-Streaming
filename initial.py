@@ -17,6 +17,7 @@ from sparknlp.annotator import (Tokenizer, Normalizer,
                                 LemmatizerModel, StopWordsCleaner)
 from sklearn.naive_bayes import GaussianNB
 import pickle
+from sklearn.metrics import accuracy_score
 
 from pyspark.ml.feature import StringIndexer
 nltk.download('stopwords')
@@ -60,15 +61,16 @@ def readMyStream(rdd):
         idf = IDF(inputCol="rawFeatures", outputCol="features")
         idfModel = idf.fit(featurizedData)
         rescaledData = idfModel.transform(featurizedData)
-        gnb.partial_fit((rescaledData.select("features").collect())[
-                        0], rescaledData.select("feature2a").collect()[0], classes=[0, 1])
-
-        # gnb.predict(rescaledData.select("features"))
-        # rescaledData.show()
+        # gnb.partial_fit((rescaledData.select("features").collect())[
+        #                 0], rescaledData.select("feature2a").collect()[0], classes=[0, 1])
+        test_data = gnb.predict(rescaledData.select("features").collect()[0])
+        score = accuracy_score(rescaledData.select("feature2a").collect()[
+                               0], test_data, normalize=False)
+        print("batch no {},Accuracy:{}".format(batch_no, score))
 
         # for features_label in rescaledData.select("features", "feature0").take(3):
         #     print(features_label)
-        print(batch_no)
+
         # df_final.show()
 
 
