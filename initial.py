@@ -60,6 +60,7 @@ def readMyStream(rdd):
         idfModel = idf.fit(featurizedData)
         rescaledData = idfModel.transform(featurizedData)
         gnb.partial_fit(rescaledData.select("features"), "feature2a")
+
         # gnb.predict(rescaledData.select("features"))
         # rescaledData.show()
 
@@ -149,6 +150,6 @@ gnb = GaussianNB()
 lines = ssc.socketTextStream("localhost", 6100)
 # process each RDD(resilient distributed dataset) to desirable format
 lines.foreachRDD(lambda rdd: readMyStream(rdd))
-gnb.save("gnb_model")
+
 ssc.start()
 ssc.awaitTermination()
