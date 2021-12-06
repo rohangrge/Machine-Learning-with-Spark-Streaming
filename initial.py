@@ -6,7 +6,6 @@ import pyspark.sql.functions as F
 from pyspark.sql import SparkSession
 from pyspark.sql.types import StructType, StringType
 from pyspark.ml.feature import HashingTF, IDF, RegexTokenizer, Binarizer, OneHotEncoder
-from pyspark.ml.feature import OneHotEncoderEstimator
 
 from pyspark.sql.functions import array, lower, regexp_replace, trim, col
 from pyspark.ml.linalg import VectorUDT
