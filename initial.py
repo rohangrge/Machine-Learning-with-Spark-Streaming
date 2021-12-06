@@ -10,7 +10,10 @@ from pyspark.ml.linalg import VectorUDT
 from pyspark.ml.feature import StopWordsRemover
 import nltk
 from nltk.corpus import stopwords
+from sparknlp.annotator import (Tokenizer, Normalizer,
+                                LemmatizerModel, StopWordsCleaner)
 nltk.download('stopwords')
+
 
 def readMyStream(rdd):
 
@@ -30,19 +33,22 @@ def readMyStream(rdd):
             df_final = df_final.union(df_temp)
             print(i)
         df_final.show()
-        
+
         df_final = df_final.withColumn(
             "feature1", removePunctuation(col("feature1")))
         # df_final = df_final.withColumn("feature1", array(df_final.feature1a))
-        #df_final.show()
+        # df_final.show()
         tokenizer = RegexTokenizer(inputCol="feature1", outputCol="words")
         wordsData = tokenizer.transform(df_final)
         wordsData = wordsData.withColumn("feature1", array(df_final.feature1))
-        
-        remover = StopWordsRemover(inputCol="words", outputCol="filtered", stopWords = stopwords.words("english"))
-        stopRemoval = remover.transform(wordsData)
+        lemmatizer = LemmatizerModel.pretrained().setInputCols(
+            ['words']).setOutputCol('lemma')
+        lemmatizedData = lemmatizer.transform(wordsData)
+        remover = StopWordsRemover(
+            inputCol="lemma", outputCol="filtered", stopWords=stopwords.words("english"))
+        stopRemoval = remover.transform(lemmatizedData)
         stopRemoval.show()
-        
+
         hashingTF = HashingTF(inputCol="feature1",
                               outputCol="rawFeatures", numFeatures=1)
         featurizedData = hashingTF.transform(stopRemoval)
@@ -54,7 +60,6 @@ def readMyStream(rdd):
             print(features_label)
         print(batch_no)
         df_final.show()
-
 
 
 def removePunctuation(column):
