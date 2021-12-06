@@ -36,7 +36,7 @@ def readMyStream(rdd):
             print(i)
         df_final.show()
         binarizer = Binarizer(
-            threshold=1.0, inputCol="feature2", outputCol="feature2")
+            threshold=1.0, inputCol="feature2", outputCol="feature2a")
         df_final = binarizer.transform(df_final)
         df_final = df_final.withColumn(
             "feature1", removePunctuation(col("feature1")))
