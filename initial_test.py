@@ -17,13 +17,14 @@ from sparknlp.annotator import (Tokenizer, Normalizer,
                                 LemmatizerModel, StopWordsCleaner)
 from sklearn.naive_bayes import GaussianNB
 import pickle
+from sklearn.metrics import accuracy_score
 
 from pyspark.ml.feature import StringIndexer
 nltk.download('stopwords')
 udf_spam_encode = F.udf(lambda x: spam_encoding(x), IntegerType())
 
 
-def readMyStream(rdd):
+def readMyStream(rdd, gnb):
 
     if not rdd.isEmpty():
         global batch_no
@@ -39,7 +40,7 @@ def readMyStream(rdd):
             df_temp = df.select("{}.feature0".format(
                 i), "{}.feature1".format(i), "{}.feature2".format(i))
             df_final = df_final.union(df_temp)
-            print(i)
+            # print(i)
 
         df_final = df_final.withColumn(
             "feature2a", udf_spam_encode(col("feature2")))
@@ -61,23 +62,27 @@ def readMyStream(rdd):
         idfModel = idf.fit(featurizedData)
         rescaledData = idfModel.transform(featurizedData)
         gnb.partial_fit((rescaledData.select("features").collect())[
-                        0], rescaledData.select("feature2a").collect()[0], classes=[0, 1])
-
-        # gnb.predict(rescaledData.select("features"))
-        # rescaledData.show()
+            0], rescaledData.select("feature2a").collect()[0], classes=[0, 1])
+        test_data = gnb.predict(rescaledData.select("features").collect()[0])
+        score = accuracy_score(rescaledData.select("feature2a").collect()[
+                               0], test_data, normalize=False)
+        print("batch no {},Accuracy:{}".format(batch_no, score))
 
         # for features_label in rescaledData.select("features", "feature0").take(3):
         #     print(features_label)
-        print(batch_no)
+
         # df_final.show()
 
 
 def removePunctuation(column):
     """Removes punctuation, changes to lower case, and strips leading and trailing spaces.
+
     Note:
         Only spaces, letters, and numbers should be retained.
+
     Args:
         column (Column): A Column containing a sentence.
+
     Returns:
         Column: A Column named 'sentence' with clean-up operations applied.
     """
@@ -144,15 +149,15 @@ pipeline = Pipeline() \
         stopwords_cleaner,
         finisher
     ])
-gnb = GaussianNB()
+
 # read streaming data from socket into a dstream
 lines = ssc.socketTextStream("localhost", 6100)
 # process each RDD(resilient distributed dataset) to desirable format
-lines.foreachRDD(lambda rdd: readMyStream(rdd))
-
-ssc.start()
-
-
-ssc.awaitTermination()
+fil = open('my_dumped_classifier.pkl', 'rb')
+gnb = pickle.load(fil)
+lines.foreachRDD(lambda rdd: readMyStream(rdd, gnb))
 with open('my_dumped_classifier.pkl', 'wb') as fid:
     pickle.dump(gnb, fid)
+
+ssc.start()
+ssc.awaitTermination()
