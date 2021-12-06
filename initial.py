@@ -59,8 +59,8 @@ def readMyStream(rdd):
         idf = IDF(inputCol="rawFeatures", outputCol="features")
         idfModel = idf.fit(featurizedData)
         rescaledData = idfModel.transform(featurizedData)
-        gnb.partial_fit(array(rescaledData.select(
-            "features")['features']).reshape(-1, 1), array(rescaledData["feature2a"]), classes=[0, 1])
+        gnb.partial_fit((rescaledData.select("features").collect())[
+                        0].reshape(-1, 1), rescaledData.select("feature2a").collect()[0].reshape(-1, 1), classes=[0, 1])
 
         # gnb.predict(rescaledData.select("features"))
         # rescaledData.show()
@@ -75,7 +75,7 @@ def removePunctuation(column):
     """Removes punctuation, changes to lower case, and strips leading and trailing spaces.
 
     Note:
-        Only spaces, letters, and numbers should be retained.  
+        Only spaces, letters, and numbers should be retained.
 
     Args:
         column (Column): A Column containing a sentence.
