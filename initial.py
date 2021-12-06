@@ -60,8 +60,8 @@ def readMyStream(rdd):
         idf = IDF(inputCol="rawFeatures", outputCol="features")
         idfModel = idf.fit(featurizedData)
         rescaledData = idfModel.transform(featurizedData)
-        gnb.partial_fit((rescaledData.select("features").collect())[
-                        0], rescaledData.select("feature2a").collect()[0], classes=[0, 1])
+        gnb.fit((rescaledData.select("features").collect())[
+            0], rescaledData.select("feature2a").collect()[0])
 
         # gnb.predict(rescaledData.select("features"))
         # rescaledData.show()
@@ -144,7 +144,7 @@ pipeline = Pipeline() \
         stopwords_cleaner,
         finisher
     ])
-gnb = GaussianNB()
+gnb = GaussianNB(warm_start=True)
 # read streaming data from socket into a dstream
 lines = ssc.socketTextStream("localhost", 6100)
 # process each RDD(resilient distributed dataset) to desirable format
