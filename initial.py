@@ -39,8 +39,9 @@ def readMyStream(rdd):
         wordsData = tokenizer.transform(df_final)
         wordsData = wordsData.withColumn("feature1", array(df_final.feature1))
         
-        remover = StopWordsRemover(inputCol="feature1", outputCol="filtered", stopWords = stopwords.words("english"))
+        remover = StopWordsRemover(inputCol="words", outputCol="filtered", stopWords = stopwords.words("english"))
         stopRemoval = remover.transform(wordsData)
+        stopRemoval.show()
         
         hashingTF = HashingTF(inputCol="feature1",
                               outputCol="rawFeatures", numFeatures=1)
