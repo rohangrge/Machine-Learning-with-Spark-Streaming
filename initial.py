@@ -10,6 +10,8 @@ from pyspark.ml.linalg import VectorUDT
 from pyspark.ml.feature import StopWordsRemover
 import nltk
 from nltk.corpus import stopwords
+from sparknlp.base import Finisher, DocumentAssembler
+from pyspark.ml import Pipeline
 from sparknlp.annotator import (Tokenizer, Normalizer,
                                 LemmatizerModel, StopWordsCleaner)
 nltk.download('stopwords')
@@ -36,22 +38,15 @@ def readMyStream(rdd):
 
         df_final = df_final.withColumn(
             "feature1", removePunctuation(col("feature1")))
-        # df_final = df_final.withColumn("feature1", array(df_final.feature1a))
-        # df_final.show()
-        tokenizer = RegexTokenizer(inputCol="feature1", outputCol="words")
-        wordsData = tokenizer.transform(df_final)
-        wordsData = wordsData.withColumn("feature1", array(df_final.feature1))
-        lemmatizer = LemmatizerModel.pretrained().setInputCols(
-            ['words']).setOutputCol('lemma')
-        lemmatizedData = lemmatizer.transform(wordsData)
-        remover = StopWordsRemover(
-            inputCol="lemma", outputCol="filtered", stopWords=stopwords.words("english"))
-        stopRemoval = remover.transform(lemmatizedData)
-        stopRemoval.show()
+      
+        equifax = pipeline.fit(df_final).transform(df_final)
+        print(equifax.columns)
+        for features_label in equifax.select("finished_clean_lemma").take(1):
+            print(features_label)
 
-        hashingTF = HashingTF(inputCol="feature1",
+        hashingTF = HashingTF(inputCol="finished_clean_lemma",
                               outputCol="rawFeatures", numFeatures=1)
-        featurizedData = hashingTF.transform(stopRemoval)
+        featurizedData = hashingTF.transform(equifax)
 
         idf = IDF(inputCol="rawFeatures", outputCol="features")
         idfModel = idf.fit(featurizedData)
@@ -59,7 +54,7 @@ def readMyStream(rdd):
         for features_label in rescaledData.select("features", "feature0").take(3):
             print(features_label)
         print(batch_no)
-        df_final.show()
+        #df_final.show()
 
 
 def removePunctuation(column):
@@ -77,6 +72,8 @@ def removePunctuation(column):
     return lower(trim(regexp_replace(column, '\\p{Punct}', ''))).alias('sentence')
 
 
+eng_stopwords = stopwords.words('english')
+
 # schema for the final dataframe
 schema = StructType().add("feature0", StringType()) \
     .add("feature1", StringType()).add("feature2", StringType())
@@ -87,7 +84,47 @@ spark = SparkSession(sc)
 ssc = StreamingContext(sc, 1)
 batch_no = 0
 
+documentAssembler = DocumentAssembler() \
+    .setInputCol('feature1') \
+    .setOutputCol('document')
 
+tokenizer = Tokenizer() \
+    .setInputCols(['document']) \
+    .setOutputCol('token')
+
+# note normalizer defaults to changing all words to lowercase.
+# Use .setLowercase(False) to maintain input case.
+normalizer = Normalizer() \
+    .setInputCols(['token']) \
+    .setOutputCol('normalized') \
+    .setLowercase(True)
+
+# note that lemmatizer needs a dictionary. So I used the pre-trained
+# model (note that it defaults to english)
+lemmatizer = LemmatizerModel.pretrained() \
+    .setInputCols(['normalized']) \
+    .setOutputCol('lemma') \
+
+stopwords_cleaner = StopWordsCleaner() \
+    .setInputCols(['lemma']) \
+    .setOutputCol('clean_lemma') \
+    .setCaseSensitive(False) \
+    .setStopWords(eng_stopwords)
+
+# finisher converts tokens to human-readable output
+finisher = Finisher() \
+    .setInputCols(['clean_lemma']) \
+    .setCleanAnnotations(True)
+
+pipeline = Pipeline() \
+    .setStages([
+        documentAssembler,
+        tokenizer,
+        normalizer,
+        lemmatizer,
+        stopwords_cleaner,
+        finisher
+    ])
 # read streaming data from socket into a dstream
 lines = ssc.socketTextStream("localhost", 6100)
 # process each RDD(resilient distributed dataset) to desirable format
