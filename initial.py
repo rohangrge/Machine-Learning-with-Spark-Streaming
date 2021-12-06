@@ -7,7 +7,10 @@ from pyspark.sql.types import StructType, StringType
 from pyspark.ml.feature import HashingTF, IDF, RegexTokenizer
 from pyspark.sql.functions import array, lower, regexp_replace, trim, col
 from pyspark.ml.linalg import VectorUDT
-
+from pyspark.ml.feature import StopWordsRemover
+import nltk
+from nltk.corpus import stopwords
+nltk.download('stopwords')
 
 def readMyStream(rdd):
 
@@ -27,16 +30,21 @@ def readMyStream(rdd):
             df_final = df_final.union(df_temp)
             print(i)
         df_final.show()
+        
         df_final = df_final.withColumn(
             "feature1", removePunctuation(col("feature1")))
         # df_final = df_final.withColumn("feature1", array(df_final.feature1a))
-        df_final.show()
+        #df_final.show()
         tokenizer = RegexTokenizer(inputCol="feature1", outputCol="words")
         wordsData = tokenizer.transform(df_final)
         wordsData = wordsData.withColumn("feature1", array(df_final.feature1))
+        
+        remover = StopWordsRemover(inputCol="feature1", outputCol="filtered", stopWords = stopwords.words("english"))
+        stopRemoval = remover.transform(wordsData)
+        
         hashingTF = HashingTF(inputCol="feature1",
                               outputCol="rawFeatures", numFeatures=1)
-        featurizedData = hashingTF.transform(wordsData)
+        featurizedData = hashingTF.transform(stopRemoval)
 
         idf = IDF(inputCol="rawFeatures", outputCol="features")
         idfModel = idf.fit(featurizedData)
@@ -46,13 +54,6 @@ def readMyStream(rdd):
         print(batch_no)
         df_final.show()
 
-
-def lower_clean_str(x):
-    punc = '!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~'
-    lowercased_str = x.lower()
-    for ch in punc:
-        lowercased_str = lowercased_str.replace(ch, '')
-    return lowercased_str
 
 
 def removePunctuation(column):
