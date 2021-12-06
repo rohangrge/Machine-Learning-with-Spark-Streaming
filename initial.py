@@ -40,7 +40,7 @@ def readMyStream(rdd):
             df_temp = df.select("{}.feature0".format(
                 i), "{}.feature1".format(i), "{}.feature2".format(i))
             df_final = df_final.union(df_temp)
-            print(i)
+            # print(i)
 
         df_final = df_final.withColumn(
             "feature2a", udf_spam_encode(col("feature2")))
@@ -153,6 +153,8 @@ gnb = GaussianNB()
 # read streaming data from socket into a dstream
 lines = ssc.socketTextStream("localhost", 6100)
 # process each RDD(resilient distributed dataset) to desirable format
+fil = open('my_dumped_classifier.pkl', 'rb')
+gnb = pickle.load(open_file)
 lines.foreachRDD(lambda rdd: readMyStream(rdd))
 with open('my_dumped_classifier.pkl', 'wb') as fid:
     pickle.dump(gnb, fid)
