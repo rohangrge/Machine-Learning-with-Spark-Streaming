@@ -5,7 +5,7 @@ from pyspark.sql import SQLContext
 import pyspark.sql.functions as F
 from pyspark.sql import SparkSession
 from pyspark.sql.types import StructType, StringType
-from pyspark.ml.feature import HashingTF, IDF, RegexTokenizer, Binarizer
+from pyspark.ml.feature import HashingTF, IDF, RegexTokenizer, Binarizer, OneHotEncoderEstimator
 from pyspark.sql.functions import array, lower, regexp_replace, trim, col
 from pyspark.ml.linalg import VectorUDT
 from pyspark.ml.feature import StopWordsRemover
