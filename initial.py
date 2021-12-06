@@ -60,7 +60,7 @@ def readMyStream(rdd):
         idfModel = idf.fit(featurizedData)
         rescaledData = idfModel.transform(featurizedData)
         gnb.partial_fit(rescaledData.select(
-            "features"), "feature2a", classes=2)
+            "features"), "feature2a", classes=[0, 1])
 
         # gnb.predict(rescaledData.select("features"))
         # rescaledData.show()
