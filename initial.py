@@ -4,7 +4,7 @@ from pyspark.sql import SQLContext
 import pyspark.sql.functions as F
 from pyspark.sql import SparkSession
 from pyspark.sql.types import StructType, StringType
-from pyspark.ml.feature import HashingTF, IDF, RegexTokenizer
+from pyspark.ml.feature import HashingTF, IDF, RegexTokenizer, Binarizer
 from pyspark.sql.functions import array, lower, regexp_replace, trim, col
 from pyspark.ml.linalg import VectorUDT
 from pyspark.ml.feature import StopWordsRemover
@@ -35,10 +35,12 @@ def readMyStream(rdd):
             df_final = df_final.union(df_temp)
             print(i)
         df_final.show()
-
+        binarizer = Binarizer(
+            threshold=1.0, inputCol="feature2", outputCol="feature2")
+        df_final = binarizer.transform(df_final)
         df_final = df_final.withColumn(
             "feature1", removePunctuation(col("feature1")))
-      
+
         equifax = pipeline.fit(df_final).transform(df_final)
         print(equifax.columns)
         for features_label in equifax.select("finished_clean_lemma").take(1):
@@ -54,7 +56,7 @@ def readMyStream(rdd):
         for features_label in rescaledData.select("features", "feature0").take(3):
             print(features_label)
         print(batch_no)
-        #df_final.show()
+        # df_final.show()
 
 
 def removePunctuation(column):
