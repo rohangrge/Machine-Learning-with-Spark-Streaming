@@ -1,3 +1,4 @@
+import numpy as np
 from pyspark import SparkContext
 from pyspark.streaming import StreamingContext
 from pyspark.sql import SQLContext
@@ -53,6 +54,7 @@ def readMyStream(rdd):
         idf = IDF(inputCol="rawFeatures", outputCol="features")
         idfModel = idf.fit(featurizedData)
         rescaledData = idfModel.transform(featurizedData)
+
         for features_label in rescaledData.select("features", "feature0").take(3):
             print(features_label)
         print(batch_no)
