@@ -16,7 +16,7 @@ from pyspark.ml import Pipeline
 from sparknlp.annotator import (Tokenizer, Normalizer,
                                 LemmatizerModel, StopWordsCleaner)
 from sklearn.naive_bayes import GaussianNB
-import pickle
+import cPickle
 
 from pyspark.ml.feature import StringIndexer
 nltk.download('stopwords')
