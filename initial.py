@@ -154,7 +154,7 @@ gnb = GaussianNB()
 lines = ssc.socketTextStream("localhost", 6100)
 # process each RDD(resilient distributed dataset) to desirable format
 fil = open('my_dumped_classifier.pkl', 'rb')
-gnb = pickle.load(open_file)
+gnb = pickle.load(fil)
 lines.foreachRDD(lambda rdd: readMyStream(rdd))
 with open('my_dumped_classifier.pkl', 'wb') as fid:
     pickle.dump(gnb, fid)
