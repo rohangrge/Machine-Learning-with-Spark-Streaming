@@ -5,7 +5,7 @@ from pyspark.sql import SQLContext
 import pyspark.sql.functions as F
 from pyspark.sql import SparkSession
 from pyspark.sql.types import StructType, StringType
-from pyspark.ml.feature import HashingTF, IDF, RegexTokenizer, Binarizer, OneHotEncoderEstimator
+from pyspark.ml.feature import HashingTF, IDF, RegexTokenizer, Binarizer, OneHotEncoder
 from pyspark.ml.feature import OneHotEncoderEstimator
 
 from pyspark.sql.functions import array, lower, regexp_replace, trim, col
@@ -39,7 +39,7 @@ def readMyStream(rdd):
             df_final = df_final.union(df_temp)
             print(i)
         df_final.show()
-        ohe = OneHotEncoderEstimator(
+        ohe = OneHotEncoder(
             inputCols=["feature2"], outputCols=["feature2_ohe"])
         ohe.fit(df_final).transform(df_final).show()
         df_final = df_final.withColumn(
