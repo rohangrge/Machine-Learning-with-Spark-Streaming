@@ -15,6 +15,7 @@ from sparknlp.base import Finisher, DocumentAssembler
 from pyspark.ml import Pipeline
 from sparknlp.annotator import (Tokenizer, Normalizer,
                                 LemmatizerModel, StopWordsCleaner)
+from pyspark.ml.feature import StringIndexer
 nltk.download('stopwords')
 
 
@@ -36,9 +37,8 @@ def readMyStream(rdd):
             df_final = df_final.union(df_temp)
             print(i)
         df_final.show()
-        binarizer = Binarizer(
-            threshold=1.0, inputCol="feature2", outputCol="feature2a")
-        df_final = binarizer.transform(df_final)
+        indexer = StringIndexer(inputCol="feature2", outputCol="feature2a")
+        indexer.fit(df_final).transform(df_final).show()
         df_final = df_final.withColumn(
             "feature1", removePunctuation(col("feature1")))
 
