@@ -4,9 +4,8 @@ from pyspark.streaming import StreamingContext
 from pyspark.sql import SQLContext
 import pyspark.sql.functions as F
 from pyspark.sql import SparkSession
-from pyspark.sql.types import StructType, StringType
-from pyspark.ml.feature import HashingTF, IDF, RegexTokenizer, Binarizer, OneHotEncoder
-
+from pyspark.sql.types import StructType, StringType, IntegerType
+from pyspark.ml.feature import HashingTF, IDF, RegexTokenizer, Binarizer
 from pyspark.sql.functions import array, lower, regexp_replace, trim, col
 from pyspark.ml.linalg import VectorUDT
 from pyspark.ml.feature import StopWordsRemover
@@ -18,7 +17,7 @@ from sparknlp.annotator import (Tokenizer, Normalizer,
                                 LemmatizerModel, StopWordsCleaner)
 from pyspark.ml.feature import StringIndexer
 nltk.download('stopwords')
-
+udf_spam_encode = F.udf(lambda x: spam_encoding(x) , IntegerType())
 
 def readMyStream(rdd):
 
@@ -37,17 +36,18 @@ def readMyStream(rdd):
                 i), "{}.feature1".format(i), "{}.feature2".format(i))
             df_final = df_final.union(df_temp)
             print(i)
+        
+
+        df_final = df_final.withColumn("feature2a", udf_spam_encode(col("feature2")))
         df_final.show()
-        ohe = OneHotEncoder(
-            inputCols=["feature2"], outputCols=["feature2_ohe"])
-        ohe.fit(df_final).transform(df_final).show()
+        
         df_final = df_final.withColumn(
             "feature1", removePunctuation(col("feature1")))
 
         equifax = pipeline.fit(df_final).transform(df_final)
-        print(equifax.columns)
-        for features_label in equifax.select("finished_clean_lemma").take(1):
-            print(features_label)
+        # print(equifax.columns)
+        # for features_label in equifax.select("finished_clean_lemma").take(1):
+        #     print(features_label)
 
         hashingTF = HashingTF(inputCol="finished_clean_lemma",
                               outputCol="rawFeatures", numFeatures=1)
@@ -57,8 +57,10 @@ def readMyStream(rdd):
         idfModel = idf.fit(featurizedData)
         rescaledData = idfModel.transform(featurizedData)
 
-        for features_label in rescaledData.select("features", "feature0").take(3):
-            print(features_label)
+        #rescaledData.show()
+
+        # for features_label in rescaledData.select("features", "feature0").take(3):
+        #     print(features_label)
         print(batch_no)
         # df_final.show()
 
@@ -77,6 +79,11 @@ def removePunctuation(column):
     """
     return lower(trim(regexp_replace(column, '\\p{Punct}', ''))).alias('sentence')
 
+def spam_encoding(spam_ham):
+    if spam_ham == "spam":
+        return 0
+    else:
+        return 1
 
 eng_stopwords = stopwords.words('english')
 
