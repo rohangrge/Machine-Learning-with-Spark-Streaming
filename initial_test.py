@@ -61,8 +61,8 @@ def readMyStream(rdd, gnb):
         idf = IDF(inputCol="rawFeatures", outputCol="features")
         idfModel = idf.fit(featurizedData)
         rescaledData = idfModel.transform(featurizedData)
-        # gnb.partial_fit((rescaledData.select("features").collect())[
-        #                 0], rescaledData.select("feature2a").collect()[0], classes=[0, 1])
+        gnb.fit((rescaledData.select("features").collect())[
+            0], rescaledData.select("feature2a").collect()[0], classes=[0, 1])
         test_data = gnb.predict(rescaledData.select("features").collect()[0])
         score = accuracy_score(rescaledData.select("feature2a").collect()[
                                0], test_data, normalize=False)
