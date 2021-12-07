@@ -27,9 +27,7 @@ class SpamAnalyser:
         self.gnb = GaussianNB()
         self.spam_model = pickle.load(open('my_dumped_classifier.pkl', 'rb'))
         self.eng_stopwords = stopwords.words('english')
-        self.sc = SparkContext("local[2]", "spam")
-        self.spark = SparkSession(self.sc)
-        self.ssc = StreamingContext(self.sc, 1)
+
         self.schema = StructType().add("feature0", StringType()) \
             .add("feature1", StringType()).add("feature2", StringType())
         self.documentAssembler = DocumentAssembler() \
@@ -142,11 +140,14 @@ class SpamAnalyser:
             return 1
 
     def start_stream(self):
-        self.ssc.socketTextStream(
+        sc = SparkContext("local[2]", "spam")
+        spark = SparkSession(self.sc)
+        ssc = StreamingContext(self.sc, 1)
+        ssc.socketTextStream(
             "localhost", 6100).foreachRDD(lambda x: self.readMyStream(x))
 
-        self.ssc.start()
-        # self.ssc.awaitTermination()
+        ssc.start()
+        ssc.awaitTermination()
         with open('my_dumped_classifier.pkl', 'wb') as fid:
             pickle.dump(self.gnb, fid)
 
