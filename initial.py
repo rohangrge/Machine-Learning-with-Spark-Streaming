@@ -75,14 +75,14 @@ class SpamAnalyser:
         self.udf_spam_encode = F.udf(
             lambda x: self.spam_encoding(x), IntegerType())
 
-    def readMyStream(self, rdd):
+    def readMyStream(self, rdd, spark):
 
         if not rdd.isEmpty():
             # global batch_no
             # batch_no += 1
             # convert the json object into a dataframe
-            df = self.spark.read.json(rdd)
-            df_final = self.spark.createDataFrame(data=[], schema=self.schema)
+            df = spark.read.json(rdd)
+            df_final = spark.createDataFrame(data=[], schema=self.schema)
 
             '''Each row in a batch is read as a seperate column, we need to extract the features
     (Subject, Message, Spam/Ham) provided by each row and present them in the required dataframe format'''
@@ -147,7 +147,7 @@ class SpamAnalyser:
         ssc = StreamingContext(sc, 1)
         test = SpamAnalyser()
         ssc.socketTextStream(
-            "localhost", 6100).foreachRDD(lambda x: test.readMyStream(x))
+            "localhost", 6100).foreachRDD(lambda x: test.readMyStream(x, spark))
 
         ssc.start()
         ssc.awaitTermination()
