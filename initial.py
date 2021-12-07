@@ -151,7 +151,7 @@ class SpamAnalyser:
 
         ssc.start()
         ssc.awaitTermination()
-        return test.gnb
+        return self.gnb
 
 
 run = SpamAnalyser.start_stream()
