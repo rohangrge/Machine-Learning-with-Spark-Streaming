@@ -151,8 +151,9 @@ class SpamAnalyser:
 
         ssc.start()
         ssc.awaitTermination()
-        with open('my_dumped_classifier.pkl', 'wb') as fid:
-            pickle.dump(self.gnb, fid)
+        return test.gnb
 
 
-SpamAnalyser.start_stream()
+run = mAnalyser.start_stream()
+with open('my_dumped_classifier.pkl', 'wb') as fid:
+    pickle.dump(run, fid)
