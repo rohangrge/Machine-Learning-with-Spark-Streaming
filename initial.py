@@ -146,7 +146,7 @@ class SpamAnalyser:
             "localhost", 6100).foreachRDD(lambda x: self.readMyStream(x))
 
         self.ssc.start()
-        self.ssc.awaitTermination()
+        # self.ssc.awaitTermination()
         with open('my_dumped_classifier.pkl', 'wb') as fid:
             pickle.dump(self.gnb, fid)
 
