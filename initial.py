@@ -154,6 +154,6 @@ class SpamAnalyser:
         return test.gnb
 
 
-run = mAnalyser.start_stream()
+run = SpamAnalyser.start_stream()
 with open('my_dumped_classifier.pkl', 'wb') as fid:
     pickle.dump(run, fid)
