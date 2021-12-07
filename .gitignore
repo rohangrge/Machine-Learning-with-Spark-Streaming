@@ -1,4 +1,5 @@
 spam/
 outputs/
 stream.py
+spark_stream.py
 .ipynb_checkpoints/BD_corr_check-checkpoint.ipynb
