@@ -20,29 +20,70 @@ import pickle
 
 from pyspark.ml.feature import StringIndexer
 nltk.download('stopwords')
-udf_spam_encode = F.udf(lambda x: spam_encoding(x), IntegerType())
 
 
-class SpamAnalyser(self):
+class SpamAnalyser:
     def __init__(self):
         self.gnb = GaussianNB()
         self.spam_model = pickle.load(open('spam_model.sav', 'rb'))
         self.eng_stopwords = stopwords.words('english')
         self.sc = SparkContext("local[2]", "spam")
-        self.spark = SparkSession(sc)
-        self.ssc = StreamingContext(sc, 1)
-        self.lines = self.ssc.socketTextStream("localhost", 6100)
+        self.spark = SparkSession(self.sc)
+        self.ssc = StreamingContext(self.sc, 1)
         self.schema = StructType().add("feature0", StringType()) \
             .add("feature1", StringType()).add("feature2", StringType())
+        self.documentAssembler = DocumentAssembler() \
+            .setInputCol('feature1') \
+            .setOutputCol('document')
+
+        self.tokenizer = Tokenizer() \
+            .setInputCols(['document']) \
+            .setOutputCol('token')
+
+# note normalizer defaults to changing all words to lowercase.
+# Use .setLowercase(False) to maintain input case.
+        self.normalizer = Normalizer() \
+            .setInputCols(['token']) \
+            .setOutputCol('normalized') \
+            .setLowercase(True)
+
+# note that lemmatizer needs a dictionary. So I used the pre-trained
+# model (note that it defaults to english)
+        self.lemmatizer = LemmatizerModel.pretrained() \
+            .setInputCols(['normalized']) \
+            .setOutputCol('lemma') \
+
+        self.stopwords_cleaner = StopWordsCleaner() \
+            .setInputCols(['lemma']) \
+            .setOutputCol('clean_lemma') \
+            .setCaseSensitive(False) \
+            .setStopWords(self.eng_stopwords)
+
+# finisher converts tokens to human-readable output
+        self.finisher = Finisher() \
+            .setInputCols(['clean_lemma']) \
+            .setCleanAnnotations(True)
+
+        self.pipeline = Pipeline() \
+            .setStages([
+                self.documentAssembler,
+                self.tokenizer,
+                self.normalizer,
+                self.lemmatizer,
+                self.stopwords_cleaner,
+                self.finisher
+            ])
+        self.udf_spam_encode = F.udf(
+            lambda x: self.spam_encoding(x), IntegerType())
 
     def readMyStream(self, rdd):
 
         if not rdd.isEmpty():
-            global batch_no
-            batch_no += 1
+            # global batch_no
+            # batch_no += 1
             # convert the json object into a dataframe
-            df = spark.read.json(rdd)
-            df_final = spark.createDataFrame(data=[], schema=schema)
+            df = self.spark.read.json(rdd)
+            df_final = self.spark.createDataFrame(data=[], schema=self.schema)
 
             '''Each row in a batch is read as a seperate column, we need to extract the features
     (Subject, Message, Spam/Ham) provided by each row and present them in the required dataframe format'''
@@ -54,13 +95,13 @@ class SpamAnalyser(self):
                 print(i)
 
             df_final = df_final.withColumn(
-                "feature2a", udf_spam_encode(col("feature2")))
+                "feature2a", self.udf_spam_encode(col("feature2")))
             df_final.show()
 
             df_final = df_final.withColumn(
-                "feature1", removePunctuation(col("feature1")))
+                "feature1", self.removePunctuation(col("feature1")))
 
-            equifax = pipeline.fit(df_final).transform(df_final)
+            equifax = self.pipeline.fit(df_final).transform(df_final)
             # print(equifax.columns)
             # for features_label in equifax.select("finished_clean_lemma").take(1):
             #     print(features_label)
@@ -72,15 +113,15 @@ class SpamAnalyser(self):
             idf = IDF(inputCol="rawFeatures", outputCol="features")
             idfModel = idf.fit(featurizedData)
             rescaledData = idfModel.transform(featurizedData)
-            gnb.partial_fit((rescaledData.select("features").collect())[
-                            0], rescaledData.select("feature2a").collect()[0], classes=[0, 1])
+            self.gnb.partial_fit((rescaledData.select("features").collect())[
+                0], rescaledData.select("feature2a").collect()[0], classes=[0, 1])
 
             # gnb.predict(rescaledData.select("features"))
             # rescaledData.show()
 
             # for features_label in rescaledData.select("features", "feature0").take(3):
             #     print(features_label)
-            print(batch_no)
+            # print(batch_no)
             # df_final.show()
 
     def removePunctuation(self, column):
@@ -100,67 +141,15 @@ class SpamAnalyser(self):
         else:
             return 1
 
+    def start_stream(self):
+        self.ssc.socketTextStream(
+            "localhost", 6100).foreachRDD(self.readMyStream)
 
-# schema for the final dataframe
-schema = StructType().add("feature0", StringType()) \
-    .add("feature1", StringType()).add("feature2", StringType())
-
-# initialisations
-sc = SparkContext("local[2]", "spam")
-spark = SparkSession(sc)
-ssc = StreamingContext(sc, 1)
-batch_no = 0
-
-# documentAssembler = DocumentAssembler() \
-#     .setInputCol('feature1') \
-#     .setOutputCol('document')
-
-# tokenizer = Tokenizer() \
-#     .setInputCols(['document']) \
-#     .setOutputCol('token')
-
-# # note normalizer defaults to changing all words to lowercase.
-# # Use .setLowercase(False) to maintain input case.
-# normalizer = Normalizer() \
-#     .setInputCols(['token']) \
-#     .setOutputCol('normalized') \
-#     .setLowercase(True)
-
-# # note that lemmatizer needs a dictionary. So I used the pre-trained
-# # model (note that it defaults to english)
-# lemmatizer = LemmatizerModel.pretrained() \
-#     .setInputCols(['normalized']) \
-#     .setOutputCol('lemma') \
-
-# stopwords_cleaner = StopWordsCleaner() \
-#     .setInputCols(['lemma']) \
-#     .setOutputCol('clean_lemma') \
-#     .setCaseSensitive(False) \
-#     .setStopWords(eng_stopwords)
-
-# # finisher converts tokens to human-readable output
-# finisher = Finisher() \
-#     .setInputCols(['clean_lemma']) \
-#     .setCleanAnnotations(True)
-
-# pipeline = Pipeline() \
-#     .setStages([
-#         documentAssembler,
-#         tokenizer,
-#         normalizer,
-#         lemmatizer,
-#         stopwords_cleaner,
-#         finisher
-#     ])
-
-# read streaming data from socket into a dstream
-
-# process each RDD(resilient distributed dataset) to desirable format
-lines.foreachRDD(lambda rdd: readMyStream(rdd))
-
-ssc.start()
+        self.ssc.start()
+        self.ssc.awaitTermination()
+        with open('my_dumped_classifier.pkl', 'wb') as fid:
+            pickle.dump(self.gnb, fid)
 
 
-ssc.awaitTermination()
-with open('my_dumped_classifier.pkl', 'wb') as fid:
-    pickle.dump(gnb, fid)
+test = SpamAnalyser()
+test.start_stream()
