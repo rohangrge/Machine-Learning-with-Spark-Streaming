@@ -15,7 +15,7 @@ from sparknlp.base import Finisher, DocumentAssembler
 from pyspark.ml import Pipeline
 from sparknlp.annotator import (Tokenizer, Normalizer,
                                 LemmatizerModel, StopWordsCleaner)
-from sklearn.naive_bayes import GaussianNB, MultinomialNB
+from sklearn.naive_bayes import GaussianNB
 import pickle
 from sklearn.cluster import MiniBatchKMeans
 
