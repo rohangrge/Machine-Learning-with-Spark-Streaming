@@ -141,8 +141,8 @@ class SpamAnalyser:
 
     def start_stream(self):
         sc = SparkContext("local[2]", "spam")
-        spark = SparkSession(self.sc)
-        ssc = StreamingContext(self.sc, 1)
+        spark = SparkSession(sc)
+        ssc = StreamingContext(sc, 1)
         ssc.socketTextStream(
             "localhost", 6100).foreachRDD(lambda x: self.readMyStream(x))
 
