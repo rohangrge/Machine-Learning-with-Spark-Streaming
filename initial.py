@@ -150,7 +150,7 @@ pipeline = Pipeline() \
         stopwords_cleaner,
         finisher
     ])
-clf = MiniBatchKMeans(n_clusters=2, random_state=0, batch_size=6, max_iter=10)
+clf = MiniBatchKMeans(n_clusters=2, random_state=0, batch_size=12, max_iter=12)
 # read streaming data from socket into a dstream
 lines = ssc.socketTextStream("localhost", 6100)
 # process each RDD(resilient distributed dataset) to desirable format
