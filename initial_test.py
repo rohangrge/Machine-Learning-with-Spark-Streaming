@@ -61,8 +61,7 @@ def readMyStream(rdd, gnb):
         idf = IDF(inputCol="rawFeatures", outputCol="features")
         idfModel = idf.fit(featurizedData)
         rescaledData = idfModel.transform(featurizedData)
-        gnb.partial_fit((rescaledData.select("features").collect())[
-            0], rescaledData.select("feature2a").collect()[0], classes=[0, 1])
+
         test_data = gnb.predict(rescaledData.select("features").collect()[0])
         score = accuracy_score(rescaledData.select("feature2a").collect()[
                                0], test_data, normalize=False)
@@ -156,8 +155,7 @@ lines = ssc.socketTextStream("localhost", 6100)
 fil = open('my_dumped_classifier.pkl', 'rb')
 gnb = pickle.load(fil)
 lines.foreachRDD(lambda rdd: readMyStream(rdd, gnb))
-with open('my_dumped_classifier.pkl', 'wb') as fid:
-    pickle.dump(gnb, fid)
+
 
 ssc.start()
 ssc.awaitTermination()
