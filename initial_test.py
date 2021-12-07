@@ -64,7 +64,7 @@ def readMyStream(rdd, gnb):
 
         test_data = gnb.predict(rescaledData.select("features").collect()[0])
         score = accuracy_score(rescaledData.select("feature2a").collect()[
-                               0], test_data, normalize=False)
+                               0], test_data, normalize=True)
         print("batch no {},Accuracy:{}".format(batch_no, score))
 
         # for features_label in rescaledData.select("features", "feature0").take(3):
