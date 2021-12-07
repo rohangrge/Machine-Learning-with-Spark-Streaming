@@ -60,8 +60,8 @@ def readMyStream(rdd):
         idf = IDF(inputCol="rawFeatures", outputCol="features")
         idfModel = idf.fit(featurizedData)
         rescaledData = idfModel.transform(featurizedData)
-        gnb.partial_fit((rescaledData.select("features").collect())[
-                        0], rescaledData.select("feature2a").collect()[0], classes=[0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1])
+        clf.partial_fit((rescaledData.select("features").collect())[
+                        0], rescaledData.select("feature2a").collect()[0], classes=[0, 1], sample_weight=[0, 1])
 
         # gnb.predict(rescaledData.select("features"))
         # rescaledData.show()
@@ -70,7 +70,7 @@ def readMyStream(rdd):
         #     print(features_label)
         with open('my_dumped_classifier.pkl', 'wb') as fid:
 
-            pickle.dump(gnb, fid)
+            pickle.dump(clf, fid)
 
         print(batch_no)
         # df_final.show()
@@ -148,7 +148,7 @@ pipeline = Pipeline() \
         stopwords_cleaner,
         finisher
     ])
-gnb = GaussianNB()
+clf = MultinomialNB()
 # read streaming data from socket into a dstream
 lines = ssc.socketTextStream("localhost", 6100)
 # process each RDD(resilient distributed dataset) to desirable format
