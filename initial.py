@@ -17,6 +17,8 @@ from sparknlp.annotator import (Tokenizer, Normalizer,
                                 LemmatizerModel, StopWordsCleaner)
 from sklearn.naive_bayes import GaussianNB, MultinomialNB
 import pickle
+from sklearn.cluster import MiniBatchKMeans
+
 
 from pyspark.ml.feature import StringIndexer
 nltk.download('stopwords')
@@ -148,7 +150,7 @@ pipeline = Pipeline() \
         stopwords_cleaner,
         finisher
     ])
-clf = MultinomialNB()
+clf = MiniBatchKMeans(n_clusters=2, random_state=0, batch_size=6, max_iter=10)
 # read streaming data from socket into a dstream
 lines = ssc.socketTextStream("localhost", 6100)
 # process each RDD(resilient distributed dataset) to desirable format
