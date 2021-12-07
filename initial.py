@@ -1,3 +1,4 @@
+from re import S
 import numpy as np
 from pyspark import SparkContext
 from pyspark.streaming import StreamingContext
@@ -139,12 +140,14 @@ class SpamAnalyser:
         else:
             return 1
 
+    @classmethod
     def start_stream(self):
         sc = SparkContext("local[2]", "spam")
         spark = SparkSession(sc)
         ssc = StreamingContext(sc, 1)
+        test = SpamAnalyser()
         ssc.socketTextStream(
-            "localhost", 6100).foreachRDD(lambda x: self.readMyStream(x))
+            "localhost", 6100).foreachRDD(lambda x: test.readMyStream(x))
 
         ssc.start()
         ssc.awaitTermination()
@@ -152,5 +155,4 @@ class SpamAnalyser:
             pickle.dump(self.gnb, fid)
 
 
-test = SpamAnalyser()
-test.start_stream()
+SpamAnalyser.start_stream()
