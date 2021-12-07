@@ -27,6 +27,13 @@ class SpamAnalyser(self):
     def __init__(self):
         self.gnb = GaussianNB()
         self.spam_model = pickle.load(open('spam_model.sav', 'rb'))
+        self.eng_stopwords = stopwords.words('english')
+        self.sc = SparkContext("local[2]", "spam")
+        self.spark = SparkSession(sc)
+        self.ssc = StreamingContext(sc, 1)
+        self.lines = self.ssc.socketTextStream("localhost", 6100)
+        self.schema = StructType().add("feature0", StringType()) \
+            .add("feature1", StringType()).add("feature2", StringType())
 
     def readMyStream(self, rdd):
 
@@ -94,8 +101,6 @@ class SpamAnalyser(self):
             return 1
 
 
-eng_stopwords = stopwords.words('english')
-
 # schema for the final dataframe
 schema = StructType().add("feature0", StringType()) \
     .add("feature1", StringType()).add("feature2", StringType())
@@ -106,50 +111,50 @@ spark = SparkSession(sc)
 ssc = StreamingContext(sc, 1)
 batch_no = 0
 
-documentAssembler = DocumentAssembler() \
-    .setInputCol('feature1') \
-    .setOutputCol('document')
+# documentAssembler = DocumentAssembler() \
+#     .setInputCol('feature1') \
+#     .setOutputCol('document')
 
-tokenizer = Tokenizer() \
-    .setInputCols(['document']) \
-    .setOutputCol('token')
+# tokenizer = Tokenizer() \
+#     .setInputCols(['document']) \
+#     .setOutputCol('token')
 
-# note normalizer defaults to changing all words to lowercase.
-# Use .setLowercase(False) to maintain input case.
-normalizer = Normalizer() \
-    .setInputCols(['token']) \
-    .setOutputCol('normalized') \
-    .setLowercase(True)
+# # note normalizer defaults to changing all words to lowercase.
+# # Use .setLowercase(False) to maintain input case.
+# normalizer = Normalizer() \
+#     .setInputCols(['token']) \
+#     .setOutputCol('normalized') \
+#     .setLowercase(True)
 
-# note that lemmatizer needs a dictionary. So I used the pre-trained
-# model (note that it defaults to english)
-lemmatizer = LemmatizerModel.pretrained() \
-    .setInputCols(['normalized']) \
-    .setOutputCol('lemma') \
+# # note that lemmatizer needs a dictionary. So I used the pre-trained
+# # model (note that it defaults to english)
+# lemmatizer = LemmatizerModel.pretrained() \
+#     .setInputCols(['normalized']) \
+#     .setOutputCol('lemma') \
 
-stopwords_cleaner = StopWordsCleaner() \
-    .setInputCols(['lemma']) \
-    .setOutputCol('clean_lemma') \
-    .setCaseSensitive(False) \
-    .setStopWords(eng_stopwords)
+# stopwords_cleaner = StopWordsCleaner() \
+#     .setInputCols(['lemma']) \
+#     .setOutputCol('clean_lemma') \
+#     .setCaseSensitive(False) \
+#     .setStopWords(eng_stopwords)
 
-# finisher converts tokens to human-readable output
-finisher = Finisher() \
-    .setInputCols(['clean_lemma']) \
-    .setCleanAnnotations(True)
+# # finisher converts tokens to human-readable output
+# finisher = Finisher() \
+#     .setInputCols(['clean_lemma']) \
+#     .setCleanAnnotations(True)
 
-pipeline = Pipeline() \
-    .setStages([
-        documentAssembler,
-        tokenizer,
-        normalizer,
-        lemmatizer,
-        stopwords_cleaner,
-        finisher
-    ])
-gnb = GaussianNB()
+# pipeline = Pipeline() \
+#     .setStages([
+#         documentAssembler,
+#         tokenizer,
+#         normalizer,
+#         lemmatizer,
+#         stopwords_cleaner,
+#         finisher
+#     ])
+
 # read streaming data from socket into a dstream
-lines = ssc.socketTextStream("localhost", 6100)
+
 # process each RDD(resilient distributed dataset) to desirable format
 lines.foreachRDD(lambda rdd: readMyStream(rdd))
 
