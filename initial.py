@@ -143,7 +143,7 @@ class SpamAnalyser:
 
     def start_stream(self):
         self.ssc.socketTextStream(
-            "localhost", 6100).foreachRDD(self.readMyStream)
+            "localhost", 6100).foreachRDD(lambda x: self.readMyStream(x))
 
         self.ssc.start()
         self.ssc.awaitTermination()
