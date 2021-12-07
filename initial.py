@@ -68,6 +68,10 @@ def readMyStream(rdd):
 
         # for features_label in rescaledData.select("features", "feature0").take(3):
         #     print(features_label)
+        with open('my_dumped_classifier.pkl', 'wb') as fid:
+
+            pickle.dump(gnb, fid)
+
         print(batch_no)
         # df_final.show()
 
@@ -154,5 +158,3 @@ ssc.start()
 
 
 ssc.awaitTermination()
-with open('my_dumped_classifier.pkl', 'wb') as fid:
-    pickle.dump(gnb, fid)
