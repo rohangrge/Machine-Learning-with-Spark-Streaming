@@ -25,7 +25,7 @@ nltk.download('stopwords')
 class SpamAnalyser:
     def __init__(self):
         self.gnb = GaussianNB()
-        self.spam_model = pickle.load(open('spam_model.sav', 'rb'))
+        self.spam_model = pickle.load(open('my_dumped_classifier.pkl', 'rb'))
         self.eng_stopwords = stopwords.words('english')
         self.sc = SparkContext("local[2]", "spam")
         self.spark = SparkSession(self.sc)
