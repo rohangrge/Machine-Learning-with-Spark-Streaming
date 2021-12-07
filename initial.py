@@ -23,72 +23,75 @@ nltk.download('stopwords')
 udf_spam_encode = F.udf(lambda x: spam_encoding(x), IntegerType())
 
 
-def readMyStream(rdd):
+class SpamAnalyser(self):
+    def __init__(self):
+        self.gnb = GaussianNB()
+        self.spam_model = pickle.load(open('spam_model.sav', 'rb'))
 
-    if not rdd.isEmpty():
-        global batch_no
-        batch_no += 1
-        # convert the json object into a dataframe
-        df = spark.read.json(rdd)
-        df_final = spark.createDataFrame(data=[], schema=schema)
+    def readMyStream(self, rdd):
 
-        '''Each row in a batch is read as a seperate column, we need to extract the features
-(Subject, Message, Spam/Ham) provided by each row and present them in the required dataframe format'''
+        if not rdd.isEmpty():
+            global batch_no
+            batch_no += 1
+            # convert the json object into a dataframe
+            df = spark.read.json(rdd)
+            df_final = spark.createDataFrame(data=[], schema=schema)
 
-        for i in df.columns:
-            df_temp = df.select("{}.feature0".format(
-                i), "{}.feature1".format(i), "{}.feature2".format(i))
-            df_final = df_final.union(df_temp)
-            print(i)
+            '''Each row in a batch is read as a seperate column, we need to extract the features
+    (Subject, Message, Spam/Ham) provided by each row and present them in the required dataframe format'''
 
-        df_final = df_final.withColumn(
-            "feature2a", udf_spam_encode(col("feature2")))
-        df_final.show()
+            for i in df.columns:
+                df_temp = df.select("{}.feature0".format(
+                    i), "{}.feature1".format(i), "{}.feature2".format(i))
+                df_final = df_final.union(df_temp)
+                print(i)
 
-        df_final = df_final.withColumn(
-            "feature1", removePunctuation(col("feature1")))
+            df_final = df_final.withColumn(
+                "feature2a", udf_spam_encode(col("feature2")))
+            df_final.show()
 
-        equifax = pipeline.fit(df_final).transform(df_final)
-        # print(equifax.columns)
-        # for features_label in equifax.select("finished_clean_lemma").take(1):
-        #     print(features_label)
+            df_final = df_final.withColumn(
+                "feature1", removePunctuation(col("feature1")))
 
-        hashingTF = HashingTF(inputCol="finished_clean_lemma",
-                              outputCol="rawFeatures", numFeatures=1)
-        featurizedData = hashingTF.transform(equifax)
+            equifax = pipeline.fit(df_final).transform(df_final)
+            # print(equifax.columns)
+            # for features_label in equifax.select("finished_clean_lemma").take(1):
+            #     print(features_label)
 
-        idf = IDF(inputCol="rawFeatures", outputCol="features")
-        idfModel = idf.fit(featurizedData)
-        rescaledData = idfModel.transform(featurizedData)
-        gnb.partial_fit((rescaledData.select("features").collect())[
-                        0], rescaledData.select("feature2a").collect()[0], classes=[0, 1])
+            hashingTF = HashingTF(inputCol="finished_clean_lemma",
+                                  outputCol="rawFeatures", numFeatures=1)
+            featurizedData = hashingTF.transform(equifax)
 
-        # gnb.predict(rescaledData.select("features"))
-        # rescaledData.show()
+            idf = IDF(inputCol="rawFeatures", outputCol="features")
+            idfModel = idf.fit(featurizedData)
+            rescaledData = idfModel.transform(featurizedData)
+            gnb.partial_fit((rescaledData.select("features").collect())[
+                            0], rescaledData.select("feature2a").collect()[0], classes=[0, 1])
 
-        # for features_label in rescaledData.select("features", "feature0").take(3):
-        #     print(features_label)
-        print(batch_no)
-        # df_final.show()
+            # gnb.predict(rescaledData.select("features"))
+            # rescaledData.show()
 
+            # for features_label in rescaledData.select("features", "feature0").take(3):
+            #     print(features_label)
+            print(batch_no)
+            # df_final.show()
 
-def removePunctuation(column):
-    """Removes punctuation, changes to lower case, and strips leading and trailing spaces.
-    Note:
-        Only spaces, letters, and numbers should be retained.
-    Args:
-        column (Column): A Column containing a sentence.
-    Returns:
-        Column: A Column named 'sentence' with clean-up operations applied.
-    """
-    return lower(trim(regexp_replace(column, '\\p{Punct}', ''))).alias('sentence')
+    def removePunctuation(self, column):
+        """Removes punctuation, changes to lower case, and strips leading and trailing spaces.
+        Note:
+            Only spaces, letters, and numbers should be retained.
+        Args:
+            column (Column): A Column containing a sentence.
+        Returns:
+            Column: A Column named 'sentence' with clean-up operations applied.
+        """
+        return lower(trim(regexp_replace(column, '\\p{Punct}', ''))).alias('sentence')
 
-
-def spam_encoding(spam_ham):
-    if spam_ham == "spam":
-        return 0
-    else:
-        return 1
+    def spam_encoding(self, spam_ham):
+        if spam_ham == "spam":
+            return 0
+        else:
+            return 1
 
 
 eng_stopwords = stopwords.words('english')
